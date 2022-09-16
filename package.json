@@ -1,0 +1,20 @@
+{
+  "name": "rpg-in-a-box-deepl-translator",
+  "version": "1.0.0",
+  "description": "Template project to automagically create translations for RPG in a Box",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/florianb/rpg-in-a-box-deepl-translator.git"
+  },
+  "author": "florian.neumann@mindkeeper.solutions",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/florianb/rpg-in-a-box-deepl-translator/issues"
+  },
+  "homepage": "https://github.com/florianb/rpg-in-a-box-deepl-translator#readme"
+}
