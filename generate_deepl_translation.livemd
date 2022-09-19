@@ -1,0 +1,115 @@
+# Generate Deepl Translation
+
+```elixir
+Mix.install([
+  :xlsx_reader,
+  {:kino, "~> 0.6.2"},
+  {:tesla, "~> 1.4"},
+  {:jason, ">= 1.0.0"}
+])
+```
+
+## Section
+
+```elixir
+filename = "Rpg in a Box - Translations.xlsx"
+
+dirname =
+  __ENV__.file
+  |> Path.dirname()
+
+filename =
+  dirname
+  |> then(fn dir -> [dir, filename] end)
+  |> Path.join()
+
+{:ok, package} = XlsxReader.open(filename)
+
+XlsxReader.sheet_names(package) |> IO.inspect()
+```
+
+```elixir
+deepl_auth_token = Kino.Input.password("Deepl-API-Auth-Token")
+selected_language = Kino.Input.select("Target Language for Translation", de: "Deutsch")
+
+Kino.render(deepl_auth_token)
+selected_language
+```
+
+```elixir
+{:ok, sheet} = XlsxReader.sheet(package, "Editor Interface")
+
+[labels | sheet] = sheet
+
+labels = labels |> List.replace_at(0, "label") |> Enum.map(&String.to_atom/1)
+
+sheet
+|> Enum.map(fn row ->
+  Enum.zip(labels, row)
+  |> Enum.into(%{})
+end)
+```
+
+```elixir
+defmodule Deepl do
+  use Tesla
+
+  plug(Tesla.Middleware.BaseUrl, "https://api.deepl.com/v2")
+  plug(Tesla.Middleware.JSON, engine_opts: [escape: :unicode_safe])
+  plug(Tesla.Middleware.Logger)
+
+  def get_glossaries(client) do
+    client
+    |> get("/glossaries")
+  end
+
+  def put_glossary(client, glossary) do
+    content = File.read!(glossary.file)
+    String.valid?(content) |> IO.inspect()
+
+    client
+    |> post("glossaries", %{
+      name: glossary.name,
+      source_lang: glossary.source_language,
+      target_lang: glossary.target_language,
+      entries: content,
+      entries_format: "csv"
+    })
+  end
+
+  def client(api_key) do
+    Tesla.client([
+      {Tesla.Middleware.Headers, [{"authorization", "DeepL-Auth-Key #{api_key}"}]}
+    ])
+  end
+end
+
+client =
+  Kino.Input.read(deepl_auth_token)
+  |> Deepl.client()
+
+selected_language_code =
+  Kino.Input.read(selected_language)
+  |> Atom.to_string()
+
+glossary =
+  Path.wildcard(Path.join([dirname, "glossary/*.csv"]))
+  |> Enum.map(fn glossary ->
+    filename = Path.basename(glossary, ".csv")
+    [_, source_language, target_language] = String.split(filename, "_")
+
+    %{
+      file: glossary,
+      name: filename,
+      source_language: source_language,
+      target_language: target_language
+    }
+  end)
+  |> Enum.filter(fn glossary ->
+    glossary.source_language == "en" && glossary.target_language == selected_language_code
+  end)
+  |> List.first()
+
+client
+|> Deepl.put_glossary(glossary)
+```
