@@ -7,6 +7,7 @@ library to create translations.
 
 ## Requirements
 
+- A Livebook-Instance to use: https://livebook.dev/
 - DEEPL API key (warning: the usage of DEEPL for translations will generate costs)
 - Internet connection
 - A "Tabular-separated" (TSV) export of the official "RPG in a Box - Translations" Google Docs spreadsheet. 
