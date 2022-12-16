@@ -29,10 +29,11 @@ XlsxReader.sheet_names(package) |> IO.inspect()
 ```
 
 ```elixir
-deepl_auth_token = Kino.Input.password("Deepl-API-Auth-Token")
+deepl_auth_token = System.fetch_env!("LB_DEEPL_API_KEY")
 selected_language = Kino.Input.select("Target Language for Translation", de: "Deutsch")
 
-Kino.render(deepl_auth_token)
+IO.inspect(deepl_auth_token)
+
 selected_language
 ```
 
@@ -56,16 +57,17 @@ defmodule Deepl do
 
   plug(Tesla.Middleware.BaseUrl, "https://api.deepl.com/v2")
   plug(Tesla.Middleware.JSON, engine_opts: [escape: :unicode_safe])
-  plug(Tesla.Middleware.Logger)
+  plug(Tesla.Middleware.FormUrlencoded)
+  plug(Tesla.Middleware.KeepRequest)
 
   def get_glossaries(client) do
     client
     |> get("/glossaries")
+    |> then(fn {:ok, env} -> env.body["glossaries"] end)
   end
 
   def put_glossary(client, glossary) do
     content = File.read!(glossary.file)
-    String.valid?(content) |> IO.inspect()
 
     client
     |> post("glossaries", %{
@@ -77,15 +79,40 @@ defmodule Deepl do
     })
   end
 
+  def delete_glossary(client, glossary_name) do
+    glossaries =
+      get_glossaries(client)
+      |> Enum.filter(fn g -> g["name"] == glossary_name end)
+
+    delete_glossaries(client, glossaries)
+  end
+
+  defp delete_glossaries(client, []), do: true
+
+  defp delete_glossaries(client, [glossary | glossaries]) do
+    delete("glossaries/#{glossary["glossary_id"]}")
+
+    delete_glossaries(client, glossaries)
+  end
+
+  def translate(client, source_lang, target_lang, text) do
+    client
+    |> post("translate", %{
+      source_lang: source_lang,
+      target_lang: target_lang,
+      text: text
+    })
+  end
+
   def client(api_key) do
     Tesla.client([
-      {Tesla.Middleware.Headers, [{"authorization", "DeepL-Auth-Key #{api_key}"}]}
+      {Tesla.Middleware.Headers, [{"Authorization", "DeepL-Auth-Key #{api_key}"}]}
     ])
   end
 end
 
 client =
-  Kino.Input.read(deepl_auth_token)
+  deepl_auth_token
   |> Deepl.client()
 
 selected_language_code =
@@ -111,5 +138,6 @@ glossary =
   |> List.first()
 
 client
-|> Deepl.put_glossary(glossary)
+# |> Deepl.delete_glossary("rpginabox_en_de")
+|> Deepl.get_glossaries()
 ```

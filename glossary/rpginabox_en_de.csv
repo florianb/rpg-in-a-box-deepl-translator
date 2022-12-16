@@ -1,7 +1,7 @@
 ﻿map,Karte
 tile,Feld
 character,Figur
-object ,Objekt
+object,Objekt
 dialogue,Dialog
 script,Skript
 music,Musik
@@ -10,5 +10,5 @@ image,Bild
 Font,Schrift
 UI,Benutzeroberfläche
 item,Gegenstand
-combat ,Kampf
+combat,Kampf
 stats,Werte
